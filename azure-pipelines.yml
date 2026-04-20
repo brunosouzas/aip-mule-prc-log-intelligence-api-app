@@ -41,5 +41,9 @@ stages:
       appVariableGroup: "vg-30-app-aip-mule-prc-log-intelligence-api-app-prod"
     ${{ else }}:
       appVariableGroup: "vg-30-app-aip-mule-prc-log-intelligence-api-app-nonprod"
+    secretVariableNames:
+    - AIP_PRC_LOG_INTELLIGENCE_SYS_AUTH_CLIENT_SECRET_TEST
+    - AIP_PRC_LOG_INTELLIGENCE_SYS_AUTH_CLIENT_SECRET_UAT
+    - AIP_PRC_LOG_INTELLIGENCE_SYS_AUTH_CLIENT_SECRET_PROD
     cloudhubEnv: ${{ parameters.cloudhubEnv }}
     deployFromExchange: ${{ parameters.deployFromExchange }}
