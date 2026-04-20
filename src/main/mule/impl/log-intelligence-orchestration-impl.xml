@@ -154,8 +154,8 @@ var filter = vars.analysisRequest.filter default {}
                 <ee:set-payload>
                     <![CDATA[%dw 2.0
 output application/json
-fun maskSecrets(input: String) =
-  (input default "")
+fun maskSecrets(value: String) =
+  (value default "")
     // DataWeave regex replace uses $[n] (1-based) to reference capture groups.
     replace /(?i)(token|secret|password)\s*[:=]\s*[A-Za-z0-9._-]+/ with ($[1] ++ "=***")
 var sourceEntries =

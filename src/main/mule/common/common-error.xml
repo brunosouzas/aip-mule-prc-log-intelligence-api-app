@@ -59,7 +59,7 @@ output application/java
 }]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <logger level="ERROR" category="#['error.' ++ ((vars.errorCategory default 'internal') as String)]"
+        <logger level="ERROR" category="error.canonical"
                 message="#['correlationId=' ++ (correlationId as String) ++ ' httpStatus=' ++ ((vars.httpStatus default 500) as String) ++ ' error_code=' ++ ((error.errorType.identifier default 'INTERNAL_ERROR') as String) ++ ' error_category=' ++ ((vars.errorCategory default 'internal') as String) ++ ' retryable=' ++ (((vars.errorCategory default 'internal') as String) == 'dependency')]"/>
     </sub-flow>
 </mule>
