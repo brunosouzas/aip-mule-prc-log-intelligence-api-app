@@ -18,8 +18,5 @@ control:
   plane:
     mockMode: "true"
 
-# Local decryption key for secure-config-local.yaml (never use this key outside local dev).
-encrypt.key: "906e932929757cbb03a471d26968680c"
-
 # Autodiscovery configuration
 api.id: "0"

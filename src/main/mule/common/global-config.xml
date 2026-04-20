@@ -11,7 +11,9 @@
     <configuration-properties file="properties/config.yaml" />
     <configuration-properties file="properties/pom.yaml" />
     <configuration-properties file="properties/config-${mule.env}.yaml" />
-    <secure-properties:config name="secure-properties-config" file="properties/secure-config-${mule.env}.yaml" key="${encrypt.key}">
+
+    <!-- Local decryption key for secure-config-local.yaml (never use this key outside local dev). -->
+    <secure-properties:config name="secure-properties-config" file="properties/secure-config-${mule.env}.yaml" key="aipPrcLogIntelligenceLocalDevKey0123456789">
         <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
     </secure-properties:config>
 
