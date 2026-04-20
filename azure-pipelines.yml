@@ -37,6 +37,9 @@ trigger:
 stages:
 - template: templates/stages/deploy-app.yml@pipeline-script
   parameters:
-    appVariableGroup: ""
+    ${{ if eq(parameters.cloudhubEnv, 'prod') }}:
+      appVariableGroup: "vg-30-app-aip-mule-prc-log-intelligence-api-app-prod"
+    ${{ else }}:
+      appVariableGroup: "vg-30-app-aip-mule-prc-log-intelligence-api-app-nonprod"
     cloudhubEnv: ${{ parameters.cloudhubEnv }}
     deployFromExchange: ${{ parameters.deployFromExchange }}
