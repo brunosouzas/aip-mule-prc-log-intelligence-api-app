@@ -1,6 +1,9 @@
 test:
   replicas: "1"
   vCores: "0.1"
+  runtimeVersion: "4.9.0"
+  releaseChannel: "LTS"
+  javaVersion: "17"
   clustered: "false"
   objectStoreV2: "true"
   lastMileSecurity: "false"
@@ -11,6 +14,9 @@ test:
 uat:
   replicas: "1"
   vCores: "0.1"
+  runtimeVersion: "4.9.0"
+  releaseChannel: "LTS"
+  javaVersion: "17"
   clustered: "false"
   objectStoreV2: "true"
   lastMileSecurity: "false"
@@ -21,6 +27,9 @@ uat:
 prod:
   replicas: "2"
   vCores: "0.2"
+  runtimeVersion: "4.9.0"
+  releaseChannel: "LTS"
+  javaVersion: "17"
   clustered: "false"
   objectStoreV2: "true"
   lastMileSecurity: "false"
