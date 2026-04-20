@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <sub-flow name="prc-validate-analysis-request-sf">
+        <logger level="INFO" category="request.validation" message="#['correlationId=' ++ (correlationId as String) ++ ' step=validateAnalysisRequest idempotencyKeyPresent=' ++ (!isEmpty(vars.idempotencyKey))]" />
+        <choice>
+            <when expression="#[isEmpty(vars.idempotencyKey)]">
+                <raise-error type="APP:VALIDATION_ERROR" description="idempotencyKey header or payload field is required" />
+            </when>
+            <when expression="#[(vars.analysisRequest.filter.startTime default null) == null or (vars.analysisRequest.filter.endTime default null) == null]">
+                <raise-error type="APP:VALIDATION_ERROR" description="filter.startTime and filter.endTime are mandatory" />
+            </when>
+            <when expression="#[((vars.analysisRequest.filter.limit default Mule::p('process.logs.defaultLimit')) as Number) > (Mule::p('process.logs.maxLimit') as Number)]">
+                <raise-error type="APP:VALIDATION_ERROR" description="Requested filter.limit exceeds max supported value" />
+            </when>
+            <when expression="#[sizeOf(vars.analysisRequest.sourceSystems default []) == 0]">
+                <raise-error type="APP:VALIDATION_ERROR" description="At least one source system must be provided" />
+            </when>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="prc-enforce-idempotency-sf">
+        <logger level="INFO" category="request.validation" message="#['correlationId=' ++ (correlationId as String) ++ ' step=enforceIdempotency keyPresent=' ++ (!isEmpty(vars.idempotencyKey))]" />
+        <set-variable variableName="idempotencyRegistry" value="#[(vars.idempotencyRegistry default {}) ++ {}]" />
+        <choice>
+            <when expression="#[(vars.idempotencyRegistry[vars.idempotencyKey] default null) != null]">
+                <raise-error type="APP:IDEMPOTENCY_CONFLICT" description="Duplicate idempotencyKey for active retention window" />
+            </when>
+            <otherwise>
+                <set-variable variableName="idempotencyRegistry" value="#[(vars.idempotencyRegistry default {}) ++ {(vars.idempotencyKey): now() as String}]" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="prc-orchestrate-source-collection-sf">
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=orchestrateSources sources=' ++ (sizeOf(vars.analysisRequest.sourceSystems default []) as String)]" />
+        <set-variable variableName="partialResults" value="#[false]" />
+        <set-variable variableName="sourceStatuses" value="#[[]]" />
+        <set-variable variableName="canonicalLogs" value="#[[]]" />
+
+        <foreach collection="#[vars.analysisRequest.sourceSystems default []]">
+            <set-variable variableName="currentSource" value="#[(payload default '') as String]" />
+            <try>
+                <until-successful maxRetries="${process.source.maxRetries}" millisBetweenRetries="${process.source.retryMillis}">
+                    <flow-ref name="prc-collect-source-logs-sf" />
+                </until-successful>
+                <set-variable variableName="sourceStatuses" value="#[(vars.sourceStatuses default []) ++ [{ sourceSystem: vars.currentSource, status: 'success', retryCount: 0 }]]" />
+                <error-handler>
+                    <on-error-continue type="ANY">
+                        <set-variable variableName="partialResults" value="#[true]" />
+                        <set-variable variableName="sourceStatuses" value="#[(vars.sourceStatuses default []) ++ [{ sourceSystem: vars.currentSource, status: 'failed', retryCount: Mule::p('process.source.maxRetries') as Number, note: error.description default 'collection failure' }]]" />
+                    </on-error-continue>
+                </error-handler>
+            </try>
+        </foreach>
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=orchestrateSourcesDone partialResults=' ++ ((vars.partialResults default false) as String) ++ ' collectedCount=' ++ (sizeOf(vars.canonicalLogs default []) as String)]" />
+    </sub-flow>
+
+    <sub-flow name="prc-collect-source-logs-sf">
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectSourceLogs currentSource=' ++ ((vars.currentSource default 'unknown') as String)]" />
+        <choice>
+            <when expression="#[vars.currentSource == 'anypoint']">
+                <flow-ref name="prc-collect-from-anypoint-sf" />
+            </when>
+            <when expression="#[vars.currentSource == 'observability']">
+                <flow-ref name="prc-collect-from-observability-sf" />
+            </when>
+            <otherwise>
+                <raise-error type="APP:VALIDATION_ERROR" description="Unsupported source system requested" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="prc-collect-from-anypoint-sf">
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromAnypoint path=' ++ ((Mule::p('sys.anypoint.logsPath') default '/logs') as String)]" />
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="sourceQueryParams">
+                    <![CDATA[%dw 2.0
+output application/java
+var filter = vars.analysisRequest.filter default {}
+---
+{
+  startTime: filter.startTime default null,
+  endTime: filter.endTime default null,
+  environment: filter.environment default null,
+  severity: if (isEmpty(filter.severity default [])) null else ((filter.severity default []) joinBy ","),
+  containsText: filter.containsText default null,
+  correlationId: filter.correlationId default null,
+  sourceHealthRequired: true
+} filterObject ((value, key) -> value != null)]]>
+                </ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <http:request method="GET" config-ref="sys_anypoint_http_config" path="${sys.anypoint.logsPath}" sendCorrelationId="ALWAYS">
+            <http:headers>
+                <![CDATA[#[{
+  (p('sys.auth.clientIdHeader') default 'client_id'): p('sys.auth.clientId'),
+  (p('sys.auth.clientSecretHeader') default 'client_secret'): p('secure::sys.auth.clientSecret'),
+  'x-correlation-id': correlationId
+}]]]>
+            </http:headers>
+            <http:query-params>
+                <![CDATA[#[vars.sourceQueryParams]]]>
+            </http:query-params>
+        </http:request>
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromAnypointResult kind=' ++ (if (payload is Array) 'array' else 'object')]" />
+        <flow-ref name="prc-normalise-canonical-logs-sf" />
+    </sub-flow>
+
+    <sub-flow name="prc-collect-from-observability-sf">
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromObservability path=' ++ ((Mule::p('sys.observability.logsPath') default '/logs') as String)]" />
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="sourceQueryParams">
+                    <![CDATA[%dw 2.0
+output application/java
+var filter = vars.analysisRequest.filter default {}
+---
+{
+  startTime: filter.startTime default null,
+  endTime: filter.endTime default null,
+  environment: filter.environment default null,
+  severity: if (isEmpty(filter.severity default [])) null else ((filter.severity default []) joinBy ","),
+  containsText: filter.containsText default null,
+  correlationId: filter.correlationId default null,
+  sourceHealthRequired: true
+} filterObject ((value, key) -> value != null)]]>
+                </ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <http:request method="GET" config-ref="sys_observability_http_config" path="${sys.observability.logsPath}" sendCorrelationId="ALWAYS">
+            <http:headers>
+                <![CDATA[#[{
+  (p('sys.auth.clientIdHeader') default 'client_id'): p('sys.auth.clientId'),
+  (p('sys.auth.clientSecretHeader') default 'client_secret'): p('secure::sys.auth.clientSecret'),
+  'x-correlation-id': correlationId
+}]]]>
+            </http:headers>
+            <http:query-params>
+                <![CDATA[#[vars.sourceQueryParams]]]>
+            </http:query-params>
+        </http:request>
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromObservabilityResult kind=' ++ (if (payload is Array) 'array' else 'object')]" />
+        <flow-ref name="prc-normalise-canonical-logs-sf" />
+    </sub-flow>
+
+    <sub-flow name="prc-normalise-canonical-logs-sf">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/json
+fun maskSecrets(input: String) =
+  (input default "")
+    // DataWeave regex replace uses $[n] (1-based) to reference capture groups.
+    replace /(?i)(token|secret|password)\s*[:=]\s*[A-Za-z0-9._-]+/ with ($[1] ++ "=***")
+var sourceEntries =
+  if (payload is Array) payload
+  else if ((payload.entries default null) != null) payload.entries
+  else []
+---
+if (vars.currentSource == "anypoint")
+  sourceEntries map (item) -> {
+    logId: (item.logId default item.id default uuid()) as String,
+    timestamp: (item.timestamp default item.occurredAt default now() as String) as String,
+    sourceSystem: "anypoint",
+    serviceName: (item.serviceName default item.service default "unknown-service") as String,
+    environment: (item.environment default item.env default vars.analysisRequest.filter.environment default "unknown") as String,
+    severity: upper((item.severity default item.level default "INFO") as String),
+    message: maskSecrets((item.message default item.text default "") as String),
+    correlationId: (item.correlationId default item.correlation default correlationId) as String,
+    dataClass: (item.dataClass default "internal") as String,
+    redactionApplied: maskSecrets((item.message default item.text default "") as String) != ((item.message default item.text default "") as String)
+  }
+else
+  sourceEntries map (item) -> {
+    logId: (item.logId default item.eventId default uuid()) as String,
+    timestamp: (item.timestamp default item.ts default now() as String) as String,
+    sourceSystem: "observability",
+    serviceName: (item.serviceName default item.appName default "unknown-service") as String,
+    environment: (item.environment default item.runtimeEnv default vars.analysisRequest.filter.environment default "unknown") as String,
+    severity: upper((item.severity default "INFO") as String),
+    message: maskSecrets((item.message default item.messageText default "") as String),
+    correlationId: (item.correlationId default item.traceId default correlationId) as String,
+    dataClass: (item.dataClass default "internal") as String,
+    redactionApplied: maskSecrets((item.message default item.messageText default "") as String) != ((item.message default item.messageText default "") as String)
+  }]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <set-variable variableName="canonicalLogs" value="#[(vars.canonicalLogs default []) ++ payload]" />
+        <logger level="INFO" category="security.redaction" message="#['correlationId=' ++ (correlationId as String) ++ ' step=normaliseLogs appended=' ++ (sizeOf(payload) as String) ++ ' total=' ++ (sizeOf(vars.canonicalLogs default []) as String)]" />
+    </sub-flow>
+
+    <sub-flow name="prc-dispatch-analysis-job-sf">
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=dispatchAnalysisJob']" />
+        <set-variable variableName="jobId" value="#['job-' ++ ((uuid() splitBy '-') [0])]" />
+        <set-variable variableName="dispatchRetryCount" value="#[0]" />
+
+        <until-successful maxRetries="${process.dispatch.maxRetries}" millisBetweenRetries="${process.dispatch.retryMillis}">
+            <set-variable variableName="dispatchRetryCount" value="#[(vars.dispatchRetryCount default 0) + 1]" />
+            <flow-ref name="prc-build-control-plane-request-sf" />
+            <flow-ref name="prc-send-control-plane-request-sf" />
+        </until-successful>
+
+        <set-variable variableName="jobStatus" value="#['queued']" />
+    </sub-flow>
+
+    <sub-flow name="prc-build-control-plane-request-sf">
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=buildControlPlaneEvent jobId=' ++ ((vars.jobId default 'null') as String)]" />
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/json
+---
+{
+  event_id: uuid(),
+  event_name: "analysis.debug.requested.v1",
+  event_version: "v1",
+  occurred_at: now() as String,
+  correlation_id: correlationId,
+  producer: Mule::p("api.name"),
+  payload: {
+    job_id: vars.jobId,
+    source_type: "orchestrated",
+    idempotency_key: vars.idempotencyKey,
+    requested_by: vars.analysisRequest.requestedBy default "unknown",
+    priority: vars.analysisRequest.priority default "normal",
+    log_entries: vars.canonicalLogs default []
+  }
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+
+    <sub-flow name="prc-send-control-plane-request-sf">
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=sendControlPlane mockMode=' ++ (((Mule::p('control.plane.mockMode') default true) as Boolean) as String)]" />
+        <choice>
+            <when expression="#[(Mule::p('control.plane.mockMode') default true) as Boolean]">
+                <set-variable variableName="controlPlaneAccepted" value="#[true]" />
+            </when>
+            <otherwise>
+                <raise-error type="APP:DEPENDENCY_ERROR" description="Control-plane live dispatch not configured for this environment" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="prc-get-analysis-status-sf">
+        <choice>
+            <when expression="#[isEmpty(vars.jobId)]">
+                <raise-error type="APP:VALIDATION_ERROR" description="jobId path parameter is required" />
+            </when>
+            <otherwise>
+                <set-variable variableName="jobStatus" value="#['running']" />
+                <set-variable variableName="resultUri" value="#[null]" />
+                <set-variable variableName="retryable" value="#[false]" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>

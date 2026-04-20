@@ -1,0 +1,22 @@
+http:
+  private:
+    port: "8081"
+
+sys:
+  auth:
+    clientId: "replace-uat-client-id"
+  anypoint:
+    protocol: "HTTPS"
+    host: "replace-uat-anypoint-host"
+    port: "443"
+  observability:
+    protocol: "HTTPS"
+    host: "replace-uat-observability-host"
+    port: "443"
+
+control:
+  plane:
+    mockMode: "true"
+
+# Autodiscovery configuration
+api.id: "0"

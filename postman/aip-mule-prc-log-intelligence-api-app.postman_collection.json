@@ -1,0 +1,253 @@
+{
+  "info": {
+    "_postman_id": "aip-mule-process-log-intelligence-api",
+    "name": "AIP Mule Process Log Intelligence API (aip-mule-prc-log-intelligence-api-app)",
+    "description": "Generated for endpoint testing from RAML contracts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Analysis Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Correlation-Id",
+            "value": "{{correlationId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "client_id",
+            "value": "{{clientId}}"
+          },
+          {
+            "key": "client_secret",
+            "value": "{{clientSecret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/analysis-jobs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "analysis-jobs"
+          ]
+        },
+        "description": "Auto-generated request for Create Analysis Job.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idempotencyKey\": \"idem-001\",\n  \"sourceSystems\": [\n    \"anypoint\"\n  ],\n  \"filter\": {\n    \"startTime\": \"{{startTime}}\",\n    \"endTime\": \"{{endTime}}\",\n    \"environment\": \"dev\",\n    \"severity\": [\n      \"ERROR\"\n    ]\n  },\n  \"requestedBy\": \"postman-user\",\n  \"priority\": \"normal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([202]);",
+              "});",
+              "pm.test('Response time is under 5s', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Analysis Job Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Correlation-Id",
+            "value": "{{correlationId}}"
+          },
+          {
+            "key": "client_id",
+            "value": "{{clientId}}"
+          },
+          {
+            "key": "client_secret",
+            "value": "{{clientSecret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/analysis-jobs/{{jobId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "analysis-jobs",
+            "{{jobId}}"
+          ]
+        },
+        "description": "Auto-generated request for Get Analysis Job Status."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200]);",
+              "});",
+              "pm.test('Response time is under 5s', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Alive",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health-check/alive",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health-check",
+            "alive"
+          ]
+        },
+        "description": "Auto-generated request for Health Alive."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200]);",
+              "});",
+              "pm.test('Response time is under 5s', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Ready",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health-check/ready",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health-check",
+            "ready"
+          ]
+        },
+        "description": "Auto-generated request for Health Ready."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200]);",
+              "});",
+              "pm.test('Response time is under 5s', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('correlationId')) {",
+          "  pm.collectionVariables.set('correlationId', `corr-${Date.now()}`);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:8081/api/v1"
+    },
+    {
+      "key": "analysisId",
+      "value": "replace-analysis-id"
+    },
+    {
+      "key": "jobId",
+      "value": "replace-job-id"
+    },
+    {
+      "key": "startTime",
+      "value": "2026-04-14T00:00:00Z"
+    },
+    {
+      "key": "endTime",
+      "value": "2026-04-14T01:00:00Z"
+    },
+    {
+      "key": "correlationId",
+      "value": "corr-12345"
+    },
+    {
+      "key": "clientId",
+      "value": "replace-client-id"
+    },
+    {
+      "key": "clientSecret",
+      "value": "replace-client-secret"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "modelVersion": "1.0.0",
+  "name": "aip-mule-prc-log-intelligence-api-app",
+  "description": "Process API application for log collection orchestration and AI analysis dispatch.",
+  "version": "1.0.0-SNAPSHOT",
+  "source": "file:///Users/brunosouzas/repository-local/com/github/brunosouzas/aip-mule-prc-log-intelligence-api-app/pom.xml",
+  "natures": [
+    "mule"
+  ],
+  "components": []
+}

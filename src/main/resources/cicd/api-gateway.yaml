@@ -1,0 +1,139 @@
+#tiers:
+#  - name: "Basic"
+#    autoApprove: true
+#    limits:
+#        maximumRequests: 10
+#      - visible: true
+#        timePeriodInMilliseconds: 1000
+#      - visible: true
+#        timePeriodInMilliseconds: 60000
+#        maximumRequests: 100
+
+policies:
+# Rule: choose only ONE policy between:
+# - client-id-enforcement
+# - rate-limiting-sla-based
+# Reason: SLA-based already provides the same Client ID characteristics.
+  - id: "client-id-enforcement"
+    configData:
+      credentialsOriginHasHttpBasicAuthenticationHeader: "customExpression"
+      clientIdExpression: "#[attributes.headers['client_id']]"
+      clientSecretExpression: "#[attributes.headers['client_secret']]"
+    pointcutData:
+      - methodRegex: "GET|POST"
+        uriTemplateRegex: ".*/templates/.*"
+
+# Alternative to client-id-enforcement (do not use both together)
+  #- id: "rate-limiting-sla-based"
+  #  configData:
+  #    clientIdExpression: "#[attributes.headers['client_id']]"
+  #    clusterizable: true
+  #    clientSecretExpression: "#[attributes.headers['client_secret']]"
+  #    exposeHeaders: true
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+  #- id: "json-threat-protection"
+  #  configData:
+  #    maxContainerDepth: -1
+  #    maxStringValueLength: -1
+  #    maxObjectEntryNameLength: -1
+  #    maxObjectEntryCount: -1
+  #    maxArrayElementCount: -1
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+  - id: "header-removal"
+    configData:
+      inboundHeaders:
+        - "x-correlation-id"
+      outboundHeaders:
+        - "x-correlation-id"
+
+  - id: "header-injection"
+    configData:
+      inboundHeaders:
+        - key: "x-correlation-id"
+          value: "#[correlationId]"
+      outboundHeaders:
+        - key: "x-correlation-id"
+          value: "#[correlationId]"
+
+  #- id: "xml-threat-protection"
+  #  configData:
+  #    maxNodeDepth: -1
+  #    maxAttributeCountPerElement: -1
+  #    maxChildCount: -1
+  #    maxTextLength: -1
+  #    maxAttributeLength: -1
+  #    maxCommentLength: -1
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+  #- id: "spike-control"
+  #    maximumRequests: 1
+  #  configData:
+  #    timePeriodInMilliseconds: 1000
+  #    delayAttempts: 1
+  #    delayTimeInMillis: 1000
+  #    queuingLimit: 5
+  #    exposeHeaders: false
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+  #- id: "rate-limiting"
+  #  configData:
+  #    keySelector: "#[attributes.queryParams['identifier']]"
+  #    rateLimits:
+  #      - maximumRequests: 2
+  #        timePeriodInMilliseconds: 1000
+  #      - maximumRequests: 100
+  #        timePeriodInMilliseconds: 60000
+  #    clusterizable: true
+  #    exposeHeaders: false
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+  #- id: "http-caching"
+  #  configData:
+  #    httpCachingKey: "#[attributes.requestPath]"
+  #    maxCacheEntries: 10000
+  #    distributed: true
+  #    ttl: 600
+  #    persistCache: true
+  #    useHttpCacheHeaders: true
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+# Rule: choose only ONE policy between:
+# - ip-allowlist
+# - ip-blocklist
+# Reason: both provide "IP filtered" and conflict in API Manager.
+  
+  #- id: "ip-allowlist"
+  #  configData:
+  #    ipExpression: "#[attributes.headers['x-forwarded-for']]"
+  #    ips:
+  #      - "192.168.0.1/24"
+  #      - "127.0.0.1/32"
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"
+
+# Alternative to ip-allowlist (do not use both together)
+  
+  #- id: "ip-blocklist"
+  #  configData:
+  #    ipExpression: "#[attributes.headers['x-forwarded-for']]"
+  #    ips:
+  #      - "192.168.0.1/24"
+  #      - "127.0.0.1/32"
+  #  pointcutData:
+  #    - methodRegex: "GET|POST"
+  #      uriTemplateRegex: ".*/templates/.*"

@@ -1,0 +1,44 @@
+http:
+  private:
+    port: "8081"
+
+process:
+  logs:
+    defaultLimit: "200"
+    maxLimit: "1000"
+  source:
+    maxRetries: "2"
+    retryMillis: "1000"
+  dispatch:
+    maxRetries: "2"
+    retryMillis: "1000"
+
+sys:
+  auth:
+    clientIdHeader: "client_id"
+    clientSecretHeader: "client_secret"
+    clientId: ""
+    clientSecret: ""
+  anypoint:
+    protocol: "HTTPS"
+    host: "localhost"
+    port: "8082"
+    basePath: "/api/v1"
+    logsPath: "/logs"
+    responseTimeoutMillis: "10000"
+  observability:
+    protocol: "HTTPS"
+    host: "localhost"
+    port: "8083"
+    basePath: "/api/v1"
+    logsPath: "/logs"
+    responseTimeoutMillis: "10000"
+
+control:
+  plane:
+    protocol: "HTTPS"
+    host: "aip-control-plane.example"
+    port: "443"
+    basePath: "/api/v1"
+    mockMode: "true"
+    responseTimeoutMillis: "10000"

@@ -1,0 +1,29 @@
+test:
+  replicas: "1"
+  vCores: "0.1"
+  clustered: "false"
+  objectStoreV2: "true"
+  lastMileSecurity: "false"
+  forwardSslSession: "false"
+  generateDefaultPublicUrl: "false"
+  publicUrl: ""
+
+uat:
+  replicas: "1"
+  vCores: "0.1"
+  clustered: "false"
+  objectStoreV2: "true"
+  lastMileSecurity: "false"
+  forwardSslSession: "false"
+  generateDefaultPublicUrl: "false"
+  publicUrl: ""
+
+prod:
+  replicas: "2"
+  vCores: "0.2"
+  clustered: "false"
+  objectStoreV2: "true"
+  lastMileSecurity: "false"
+  forwardSslSession: "false"
+  generateDefaultPublicUrl: "false"
+  publicUrl: ""

@@ -1,0 +1,4 @@
+# Same keys as cicd/secrets.yaml -> secureProperties for prod. Replace with ![…] before real secrets in Git.
+sys:
+  auth:
+    clientSecret: "placeholder-prod-client-secret"

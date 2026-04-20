@@ -1,0 +1,25 @@
+http:
+  private:
+    port: "8081"
+
+sys:
+  auth:
+    clientId: "01115d3f8c8c42c5b66bb585baca652d"
+  anypoint:
+    protocol: "HTTP"
+    host: "localhost"
+    port: "8082"
+  observability:
+    protocol: "HTTP"
+    host: "localhost"
+    port: "8083"
+
+control:
+  plane:
+    mockMode: "true"
+
+# Local decryption key for secure-config-local.yaml (never use this key outside local dev).
+encrypt.key: "906e932929757cbb03a471d26968680c"
+
+# Autodiscovery configuration
+api.id: "0"

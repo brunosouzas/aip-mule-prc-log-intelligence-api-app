@@ -1,0 +1,6 @@
+# Local secure properties (encrypted) using key from config-local.yaml -> encrypt.key
+# Algorithm/mode used to generate below value: Blowfish/CBC
+# Keys match cicd/secrets.yaml -> secureProperties
+sys:
+  auth:
+    clientSecret: "![LbL8uIlELZGMA1s4Eg4x0h63p8L3D69dcaFjx5aGFianZgPP+WsDew==]"

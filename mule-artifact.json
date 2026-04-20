@@ -1,0 +1,18 @@
+{
+  "minMuleVersion": "4.8.0",
+  "javaSpecificationVersions": [
+    "17"
+  ],
+  "secureProperties": [
+    "sys.auth.clientSecret"
+  ],
+  "name": "aip-mule-prc-log-intelligence-api-app",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": []
+    }
+  }
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+
+    <!-- Default to local for dev runs; CloudHub/CI should set -Dmule.env=<env>. -->
+    <global-property name="mule.env" value="local" />
+
+    <configuration-properties file="properties/config.yaml" />
+    <configuration-properties file="properties/pom.yaml" />
+    <configuration-properties file="properties/config-${mule.env}.yaml" />
+    <secure-properties:config name="secure-properties-config" file="properties/secure-config-${mule.env}.yaml" key="${encrypt.key}">
+        <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
+    </secure-properties:config>
+
+    <http:listener-config name="main_http-listener_config">
+        <http:listener-connection host="0.0.0.0" port="${http.private.port}" />
+    </http:listener-config>
+
+    <http:request-config name="sys_anypoint_http_config" basePath="${sys.anypoint.basePath}" responseTimeout="${sys.anypoint.responseTimeoutMillis}">
+        <http:request-connection protocol="${sys.anypoint.protocol}" host="${sys.anypoint.host}" port="${sys.anypoint.port}" />
+    </http:request-config>
+
+    <http:request-config name="sys_observability_http_config" basePath="${sys.observability.basePath}" responseTimeout="${sys.observability.responseTimeoutMillis}">
+        <http:request-connection protocol="${sys.observability.protocol}" host="${sys.observability.host}" port="${sys.observability.port}" />
+    </http:request-config>
+
+    <http:request-config name="control_plane_http_config" basePath="${control.plane.basePath}" responseTimeout="${control.plane.responseTimeoutMillis}">
+        <http:request-connection protocol="${control.plane.protocol}" host="${control.plane.host}" port="${control.plane.port}" />
+    </http:request-config>
+
+    <api-gateway:autodiscovery apiId="${api.id}" flowRef="api-main" ignoreBasePath="true" />
+</mule>

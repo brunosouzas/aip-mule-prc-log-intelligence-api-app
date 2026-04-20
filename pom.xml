@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>f29c19f9-a3b0-4a09-8da3-92b76caaac43</groupId>
+        <artifactId>mule-parent-pom</artifactId>
+        <version>1.0.1</version>
+    </parent>
+
+    <groupId>f29c19f9-a3b0-4a09-8da3-92b76caaac43</groupId>
+    <artifactId>aip-mule-prc-log-intelligence-api-app</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>mule-application</packaging>
+    <name>aip-mule-prc-log-intelligence-api-app</name>
+    <description>Process API application for log collection orchestration and AI analysis dispatch.</description>
+
+    <properties>
+        <api.layer>${api.layer.papi}</api.layer>
+        <deployment.prefix></deployment.prefix>
+		<api.name>${project.name}</api.name>
+		<api.domain>log</api.domain>
+		<api.version>${project.version}</api.version>
+		<api.versionId>v1</api.versionId>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>f29c19f9-a3b0-4a09-8da3-92b76caaac43</groupId>
+            <artifactId>aip-mule-prc-log-intelligence-api-spec</artifactId>
+            <version>1.0.0</version>
+            <classifier>raml</classifier>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-apikit-module</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-http-connector</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.mulesoft.modules</groupId>
+            <artifactId>mule-secure-configuration-property-module</artifactId>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+        </repository>
+    </repositories>
+</project>

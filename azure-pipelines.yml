@@ -1,0 +1,42 @@
+name: $(Date:yyyyMMdd).$(Rev:r)
+
+parameters:
+- name: cloudhubEnv
+  displayName: 'Cloudhub Environment'
+  type: string
+  default: test
+  #Replace with the list of Cloudhub environments in your org (case sensitive)
+  values:
+  - test
+  - uat
+  - prod
+
+# Deploy from Exchange: when true and manual run from a tag, deploy that tag's version from Exchange (version = tag name, e.g. v1.2.3 -> 1.2.3).
+- name: deployFromExchange
+  displayName: 'Deploy from Exchange (version from selected tag)'
+  type: boolean
+  default: false
+
+resources:
+  repositories:
+    - repository: pipeline-script
+      type: github
+      # Replace with your Azure DevOps GitHub service connection name.
+      endpoint: sc-github
+      # Replace with the GitHub repository that contains these templates (<owner>/<repo>).
+      name: brunosouzas/azure-pipelines
+      # Branch currently used for the first validation cycle.
+      ref: refs/heads/featureBranch-api
+
+trigger:
+  branches:
+    #Configure the list of branches to trigger the pipeline
+    include:
+    - develop
+      
+stages:
+- template: templates/stages/deploy-app.yml@pipeline-script
+  parameters:
+    appVariableGroup: ""
+    cloudhubEnv: ${{ parameters.cloudhubEnv }}
+    deployFromExchange: ${{ parameters.deployFromExchange }}
