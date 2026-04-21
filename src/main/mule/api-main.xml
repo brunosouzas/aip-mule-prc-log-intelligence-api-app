@@ -1,48 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
-        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
-        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd         http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    
+    
     <apikit:config name="apikitConfig" api="resource::f29c19f9-a3b0-4a09-8da3-92b76caaac43:aip-mule-prc-log-intelligence-api-spec:1.0.0:raml:zip:aip-mule-prc-log-intelligence-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-
+    
+    
+    <http:listener-config name="main_http-listener_config">
+        <http:listener-connection host="0.0.0.0" port="${http.private.port}" />
+    </http:listener-config>
+   
+   
+   
     <flow name="api-main">
         <http:listener config-ref="main_http-listener_config" path="/api/${api.versionId}/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
-                <http:headers>
-                    <![CDATA[#[vars.outboundHeaders default {}]]]>
-                </http:headers>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
             </http:response>
             <http:error-response statusCode="#[vars.httpStatus default 500]">
-                <http:body>
-                    <![CDATA[#[payload]]]>
-                </http:body>
-                <http:headers>
-                    <![CDATA[#[vars.outboundHeaders default {}]]]>
-                </http:headers>
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
             </http:error-response>
         </http:listener>
-
         <apikit:router config-ref="apikitConfig" />
         <error-handler ref="apikit-error" />
     </flow>
-
-    <flow name="post:\analysis-jobs:apikitConfig">
+    
+    
+    <flow name="post:\analysis-jobs:application\json:apikitConfig">
         <logger level="INFO" category="request.inbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=POST /analysis-jobs idempotencyKeyPresent=' ++ ((attributes.headers.'idempotency-key' default '') != '')]" />
         <set-variable variableName="requestId" value="#[uuid()]" />
-        <set-variable variableName="analysisRequest" value="#[payload]" />
-        <set-variable variableName="idempotencyKey" value="#[(attributes.headers.'idempotency-key' default payload.idempotencyKey default '') as String]" />
-
+        <set-variable variableName="analysisRequest" value="#[%dw 2.0 output application/java --- payload]" />
+        <set-variable variableName="idempotencyKey" value="#[%dw 2.0 output application/java --- (attributes.headers.'idempotency-key' default payload.idempotencyKey default '') as String]" />
         <flow-ref name="prc-validate-analysis-request-sf" />
         <flow-ref name="prc-enforce-idempotency-sf" />
         <flow-ref name="prc-orchestrate-source-collection-sf" />
         <flow-ref name="prc-dispatch-analysis-job-sf" />
-
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
@@ -59,36 +54,31 @@ output application/json
     dispatchEventName: "analysis.debug.requested.v1",
     dispatchRetryCount: vars.dispatchRetryCount default 0
   }
-}]]>
-                </ee:set-payload>
+}]]></ee:set-payload>
             </ee:message>
             <ee:variables>
-                <ee:set-variable variableName="outboundHeaders">
-                    <![CDATA[%dw 2.0
+                <ee:set-variable variableName="outboundHeaders"><![CDATA[%dw 2.0
 output application/java
 ---
 {
   "content-type": "application/json",
   "x-correlation-id": correlationId
-}]]>
-                </ee:set-variable>
+}]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
         <set-variable variableName="httpStatus" value="#[202]" />
         <logger level="INFO" category="response.outbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=POST /analysis-jobs httpStatus=202 jobId=' ++ ((vars.jobId default 'null') as String) ++ ' partialResults=' ++ ((vars.partialResults default false) as String)]" />
     </flow>
-
-    <flow name="get:\analysis-jobs\(jobid\):apikitConfig">
-        <logger level="INFO" category="request.inbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=GET /analysis-jobs/{jobid} jobId=' ++ ((attributes.uriParams.jobid default 'null') as String)]" />
+    
+    
+    <flow name="get:\analysis-jobs\(jobid):apikitConfig">
+        <logger level="INFO" category="request.inbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=GET /analysis-jobs/{jobid} jobId=' ++ (((attributes.uriParams.jobId default attributes.uriParams.jobid) default 'null') as String)]" />
         <set-variable variableName="requestId" value="#[uuid()]" />
-        <set-variable variableName="jobId" value="#[(attributes.uriParams.jobid default '') as String]" />
-
+        <set-variable variableName="jobId" value="#[((attributes.uriParams.jobId default attributes.uriParams.jobid) default '') as String]" />
         <flow-ref name="prc-get-analysis-status-sf" />
-
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
@@ -101,50 +91,47 @@ output application/json
   retryable: vars.retryable default false,
   failureCode: vars.failureCode default null,
   failureReason: vars.failureReason default null
-}]]>
-                </ee:set-payload>
+}]]></ee:set-payload>
             </ee:message>
             <ee:variables>
-                <ee:set-variable variableName="outboundHeaders">
-                    <![CDATA[%dw 2.0
+                <ee:set-variable variableName="outboundHeaders"><![CDATA[%dw 2.0
 output application/java
 ---
 {
   "content-type": "application/json",
   "x-correlation-id": correlationId
-}]]>
-                </ee:set-variable>
+}]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
         <logger level="INFO" category="response.outbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=GET /analysis-jobs/{jobid} httpStatus=' ++ ((vars.httpStatus default 200) as String) ++ ' status=' ++ ((vars.jobStatus default 'unknown') as String)]" />
     </flow>
 
+
     <flow name="get:\health-check\alive:apikitConfig">
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-{ status: "UP" }]]>
-                </ee:set-payload>
+{ status: "UP" }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
-
+    
+    
     <flow name="get:\health-check\ready:apikitConfig">
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
   name: p("api.name"),
   status: "UP"
-}]]>
-                </ee:set-payload>
+}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
+
+
 </mule>

@@ -6,16 +6,19 @@ sys:
   auth:
     clientId: "01115d3f8c8c42c5b66bb585baca652d"
   anypoint:
-    protocol: "HTTP"
-    host: "localhost"
-    port: "8082"
+    protocol: "HTTPS"
+    host: "aip-mule-sys-anypoint-logs-api-app-test-wpx6rx.5sc6y6-4.usa-e2.cloudhub.io"
+    port: "443"
   observability:
-    protocol: "HTTP"
-    host: "localhost"
-    port: "8083"
+    protocol: "HTTPS"
+    host: "aip-mule-sys-observability-logs-api-a-test-wpx6rx.5sc6y6-2.usa-e2.cloudhub.io"
+    port: "443"
 
 control:
   plane:
+    protocol: "HTTPS"
+    host: "aip-control-plane.example"
+    port: "443"
     mockMode: "true"
 
 # Autodiscovery configuration

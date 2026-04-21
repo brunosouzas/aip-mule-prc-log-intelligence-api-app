@@ -36,7 +36,12 @@
     </sub-flow>
 
     <sub-flow name="prc-orchestrate-source-collection-sf">
-        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=orchestrateSources sources=' ++ (sizeOf(vars.analysisRequest.sourceSystems default []) as String)]" />
+        <logger level="INFO" category="orchestration.dispatch" message="#[%dw 2.0
+output text/plain
+---
+'correlationId=' ++ (correlationId as String) ++
+' step=orchestrateSources sources=' ++
+(sizeOf((vars.analysisRequest.sourceSystems default []) as Array) as String)]" />
         <set-variable variableName="partialResults" value="#[false]" />
         <set-variable variableName="sourceStatuses" value="#[[]]" />
         <set-variable variableName="canonicalLogs" value="#[[]]" />
@@ -56,7 +61,12 @@
                 </error-handler>
             </try>
         </foreach>
-        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=orchestrateSourcesDone partialResults=' ++ ((vars.partialResults default false) as String) ++ ' collectedCount=' ++ (sizeOf(vars.canonicalLogs default []) as String)]" />
+        <logger level="INFO" category="orchestration.dispatch" message="#[%dw 2.0
+output text/plain
+---
+'correlationId=' ++ (correlationId as String) ++
+' step=orchestrateSourcesDone partialResults=' ++ ((vars.partialResults default false) as String) ++
+' collectedCount=' ++ (sizeOf((vars.canonicalLogs default []) as Array) as String)]" />
     </sub-flow>
 
     <sub-flow name="prc-collect-source-logs-sf">
@@ -98,8 +108,12 @@ var filter = vars.analysisRequest.filter default {}
         <http:request method="GET" config-ref="sys_anypoint_http_config" path="${sys.anypoint.logsPath}" sendCorrelationId="ALWAYS">
             <http:headers>
                 <![CDATA[#[{
-  (p('sys.auth.clientIdHeader') default 'client_id'): p('sys.auth.clientId'),
-  (p('sys.auth.clientSecretHeader') default 'client_secret'): p('secure::sys.auth.clientSecret'),
+  (Mule::p('sys.auth.clientIdHeader') default 'client_id'): Mule::p('sys.auth.clientId'),
+  (Mule::p('sys.auth.clientSecretHeader') default 'client_secret'):
+    if ((Mule::p('mule.env') default 'local') == 'local')
+      Mule::p('sys.auth.clientSecret')
+    else
+      Mule::p('secure::sys.auth.clientSecret'),
   'x-correlation-id': correlationId
 }]]]>
             </http:headers>
@@ -135,8 +149,12 @@ var filter = vars.analysisRequest.filter default {}
         <http:request method="GET" config-ref="sys_observability_http_config" path="${sys.observability.logsPath}" sendCorrelationId="ALWAYS">
             <http:headers>
                 <![CDATA[#[{
-  (p('sys.auth.clientIdHeader') default 'client_id'): p('sys.auth.clientId'),
-  (p('sys.auth.clientSecretHeader') default 'client_secret'): p('secure::sys.auth.clientSecret'),
+  (Mule::p('sys.auth.clientIdHeader') default 'client_id'): Mule::p('sys.auth.clientId'),
+  (Mule::p('sys.auth.clientSecretHeader') default 'client_secret'):
+    if ((Mule::p('mule.env') default 'local') == 'local')
+      Mule::p('sys.auth.clientSecret')
+    else
+      Mule::p('secure::sys.auth.clientSecret'),
   'x-correlation-id': correlationId
 }]]]>
             </http:headers>
@@ -193,7 +211,12 @@ else
             </ee:message>
         </ee:transform>
         <set-variable variableName="canonicalLogs" value="#[(vars.canonicalLogs default []) ++ payload]" />
-        <logger level="INFO" category="security.redaction" message="#['correlationId=' ++ (correlationId as String) ++ ' step=normaliseLogs appended=' ++ (sizeOf(payload) as String) ++ ' total=' ++ (sizeOf(vars.canonicalLogs default []) as String)]" />
+        <logger level="INFO" category="security.redaction" message="#[%dw 2.0
+output text/plain
+---
+'correlationId=' ++ (correlationId as String) ++
+' step=normaliseLogs appended=' ++ (sizeOf((payload default []) as Array) as String) ++
+' total=' ++ (sizeOf((vars.canonicalLogs default []) as Array) as String)]" />
     </sub-flow>
 
     <sub-flow name="prc-dispatch-analysis-job-sf">

@@ -17,9 +17,7 @@
         <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
     </secure-properties:config>
 
-    <http:listener-config name="main_http-listener_config">
-        <http:listener-connection host="0.0.0.0" port="${http.private.port}" />
-    </http:listener-config>
+
 
     <http:request-config name="sys_anypoint_http_config" basePath="${sys.anypoint.basePath}" responseTimeout="${sys.anypoint.responseTimeoutMillis}">
         <http:request-connection protocol="${sys.anypoint.protocol}" host="${sys.anypoint.host}" port="${sys.anypoint.port}" />
