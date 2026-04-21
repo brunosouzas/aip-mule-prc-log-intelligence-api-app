@@ -28,7 +28,7 @@
         <error-handler ref="apikit-error" />
     </flow>
 
-    <flow name="post:\analysis-jobs:apikit_config">
+    <flow name="post:\analysis-jobs:apikitConfig">
         <logger level="INFO" category="request.inbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=POST /analysis-jobs idempotencyKeyPresent=' ++ ((attributes.headers.'idempotency-key' default '') != '')]" />
         <set-variable variableName="requestId" value="#[uuid()]" />
         <set-variable variableName="analysisRequest" value="#[payload]" />
@@ -78,7 +78,7 @@ output application/java
         <logger level="INFO" category="response.outbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=POST /analysis-jobs httpStatus=202 jobId=' ++ ((vars.jobId default 'null') as String) ++ ' partialResults=' ++ ((vars.partialResults default false) as String)]" />
     </flow>
 
-    <flow name="get:\analysis-jobs\(jobid\):apikit_config">
+    <flow name="get:\analysis-jobs\(jobid\):apikitConfig">
         <logger level="INFO" category="request.inbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=GET /analysis-jobs/{jobid} jobId=' ++ ((attributes.uriParams.jobid default 'null') as String)]" />
         <set-variable variableName="requestId" value="#[uuid()]" />
         <set-variable variableName="jobId" value="#[(attributes.uriParams.jobid default '') as String]" />
@@ -119,7 +119,7 @@ output application/java
         <logger level="INFO" category="response.outbound" message="#['correlationId=' ++ (correlationId as String) ++ ' operation=GET /analysis-jobs/{jobid} httpStatus=' ++ ((vars.httpStatus default 200) as String) ++ ' status=' ++ ((vars.jobStatus default 'unknown') as String)]" />
     </flow>
 
-    <flow name="get:\health-check\alive:apikit_config">
+    <flow name="get:\health-check\alive:apikitConfig">
         <ee:transform>
             <ee:message>
                 <ee:set-payload>
@@ -129,18 +129,10 @@ output application/json
 { status: "UP" }]]>
                 </ee:set-payload>
             </ee:message>
-            <ee:variables>
-                <ee:set-variable variableName="outboundHeaders">
-                    <![CDATA[%dw 2.0
-output application/java
----
-{ "content-type": "application/json" }]]>
-                </ee:set-variable>
-            </ee:variables>
         </ee:transform>
     </flow>
 
-    <flow name="get:\health-check\ready:apikit_config">
+    <flow name="get:\health-check\ready:apikitConfig">
         <ee:transform>
             <ee:message>
                 <ee:set-payload>
@@ -153,14 +145,6 @@ output application/json
 }]]>
                 </ee:set-payload>
             </ee:message>
-            <ee:variables>
-                <ee:set-variable variableName="outboundHeaders">
-                    <![CDATA[%dw 2.0
-output application/java
----
-{ "content-type": "application/json" }]]>
-                </ee:set-variable>
-            </ee:variables>
         </ee:transform>
     </flow>
 </mule>
