@@ -39,5 +39,6 @@ sys:
     host: "127.0.0.1"
     basePath: "/api/v1"
     submitPath: "/analysis-jobs"
+    statusPathTemplate: "/analysis-jobs/{jobId}"
     mockMode: "true"
     responseTimeoutMillis: "10000"

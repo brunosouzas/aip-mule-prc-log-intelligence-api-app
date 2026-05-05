@@ -231,7 +231,6 @@ output text/plain
             <flow-ref name="prc-build-control-plane-request-sf" />
             <flow-ref name="prc-send-control-plane-request-sf" />
         </until-successful>
-
         <set-variable variableName="jobStatus" value="#['queued']" />
     </sub-flow>
 
@@ -305,9 +304,33 @@ output application/java
                 <raise-error type="APP:VALIDATION_ERROR" description="jobId path parameter is required" />
             </when>
             <otherwise>
-                <set-variable variableName="jobStatus" value="#['running']" />
-                <set-variable variableName="resultUri" value="#[null]" />
-                <set-variable variableName="retryable" value="#[false]" />
+                <choice>
+                    <when expression="#[(Mule::p('sys.controlPlane.mockMode') default true) as Boolean]">
+                        <set-variable variableName="jobStatus" value="#['running']" />
+                        <set-variable variableName="resultUri" value="#[null]" />
+                        <set-variable variableName="retryable" value="#[false]" />
+                        <set-variable variableName="failureCode" value="#[null]" />
+                        <set-variable variableName="failureReason" value="#[null]" />
+                    </when>
+                    <otherwise>
+                        <http:request method="GET"
+                                      config-ref="control_plane_http_config"
+                                      path="#[Mule::p('sys.controlPlane.statusPathTemplate') replace '{jobId}' with vars.jobId]"
+                                      sendCorrelationId="ALWAYS">
+                            <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+  "x-correlation-id": correlationId default ""
+}]]]></http:headers>
+                        </http:request>
+                        <set-variable variableName="jobStatus" value="#[(payload.status default payload.jobStatus default 'running') as String]" />
+                        <set-variable variableName="resultUri" value="#[payload.resultUri default null]" />
+                        <set-variable variableName="retryable" value="#[(payload.retryable default false) as Boolean]" />
+                        <set-variable variableName="failureCode" value="#[payload.failureCode default payload.errorCode default null]" />
+                        <set-variable variableName="failureReason" value="#[payload.failureReason default payload.errorMessage default null]" />
+                    </otherwise>
+                </choice>
             </otherwise>
         </choice>
     </sub-flow>
