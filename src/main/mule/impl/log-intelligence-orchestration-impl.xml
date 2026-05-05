@@ -117,7 +117,12 @@ var filter = vars.analysisRequest.filter default {}
                 <![CDATA[#[vars.sourceQueryParams]]]>
             </http:query-params>
         </http:request>
-        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromAnypointResult kind=' ++ (if (payload is Array) 'array' else 'object')]" />
+        <logger level="INFO" category="adapter.query" message="#[output text/plain ---
+'correlationId=' ++
+(correlationId as String) ++
+' step=collectFromAnypointResult kind=' ++
+(if (payload is Array) 'array' else 'object')
+]" />
         <flow-ref name="prc-normalise-canonical-logs-sf" />
     </sub-flow>
 
@@ -154,7 +159,12 @@ var filter = vars.analysisRequest.filter default {}
                 <![CDATA[#[vars.sourceQueryParams]]]>
             </http:query-params>
         </http:request>
-        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=collectFromObservabilityResult kind=' ++ (if (payload is Array) 'array' else 'object')]" />
+        <logger level="INFO" category="adapter.query" message="#[output text/plain ---
+'correlationId=' ++
+(correlationId as String) ++
+' step=collectFromObservabilityResult kind=' ++
+(if (payload is Array) 'array' else 'object')
+]" />
         <flow-ref name="prc-normalise-canonical-logs-sf" />
     </sub-flow>
 

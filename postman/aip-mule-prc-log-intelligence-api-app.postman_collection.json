@@ -62,6 +62,11 @@
               "pm.test('Status code is expected', function () {",
               "  pm.expect(pm.response.code).to.be.oneOf([202]);",
               "});",
+              "pm.test('Response contains jobId', function () {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.jobId).to.be.a('string').and.not.empty;",
+              "  pm.environment.set('jobId', data.jobId);",
+              "});",
               "pm.test('Response time is under 5s', function () {",
               "  pm.expect(pm.response.responseTime).to.be.below(5000);",
               "});"
@@ -201,6 +206,121 @@
           }
         }
       ]
+    },
+    {
+      "name": "SYS Control Plane - Submit Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Correlation-Id",
+            "value": "{{correlationId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "client_id",
+            "value": "{{clientId}}"
+          },
+          {
+            "key": "client_secret",
+            "value": "{{clientSecret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{sysControlPlaneBaseUrl}}/analysis-jobs",
+          "host": [
+            "{{sysControlPlaneBaseUrl}}"
+          ],
+          "path": [
+            "analysis-jobs"
+          ]
+        },
+        "description": "Call SYS control-plane directly to isolate PRC orchestration issues.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sourceType\": \"orchestrated\",\n  \"requestedBy\": \"postman-user\",\n  \"priority\": \"normal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([202]);",
+              "});",
+              "pm.test('Response contains control-plane jobId', function () {",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.jobId).to.be.a('string').and.not.empty;",
+              "  pm.environment.set('cpJobId', data.jobId);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SYS Control Plane - Get Job Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Correlation-Id",
+            "value": "{{correlationId}}"
+          },
+          {
+            "key": "client_id",
+            "value": "{{clientId}}"
+          },
+          {
+            "key": "client_secret",
+            "value": "{{clientSecret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{sysControlPlaneBaseUrl}}/analysis-jobs/{{cpJobId}}",
+          "host": [
+            "{{sysControlPlaneBaseUrl}}"
+          ],
+          "path": [
+            "analysis-jobs",
+            "{{cpJobId}}"
+          ]
+        },
+        "description": "Fetch SYS control-plane status for job created by previous request."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is expected', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200]);",
+              "});"
+            ]
+          }
+        }
+      ]
     }
   ],
   "event": [
@@ -211,7 +331,8 @@
         "exec": [
           "if (!pm.collectionVariables.get('correlationId')) {",
           "  pm.collectionVariables.set('correlationId', `corr-${Date.now()}`);",
-          "}"
+          "}",
+          "pm.variables.set('correlationId', `corr-${Date.now()}`);"
         ]
       }
     }
@@ -248,6 +369,14 @@
     {
       "key": "clientSecret",
       "value": "replace-client-secret"
+    },
+    {
+      "key": "sysControlPlaneBaseUrl",
+      "value": "https://replace-sys-control-plane-host/api/v1"
+    },
+    {
+      "key": "cpJobId",
+      "value": "replace-control-plane-job-id"
     }
   ]
 }
