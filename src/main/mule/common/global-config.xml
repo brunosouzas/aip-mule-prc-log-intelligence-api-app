@@ -18,17 +18,28 @@
     </secure-properties:config>
 
 
-
     <http:request-config name="sys_anypoint_http_config" basePath="${sys.anypoint.basePath}" responseTimeout="${sys.anypoint.responseTimeoutMillis}">
         <http:request-connection protocol="${sys.anypoint.protocol}" host="${sys.anypoint.host}" port="${sys.anypoint.port}" />
+        <http:default-headers>
+            <http:default-header key="#[(Mule::p('sys.auth.clientIdHeader') default 'client_id')]" value="#[Mule::p('sys.auth.clientId')]" />
+            <http:default-header key="#[(Mule::p('sys.auth.clientSecretHeader') default 'client_secret')]" value="#[if ((Mule::p('mule.env') default 'local') == 'local') Mule::p('sys.auth.clientSecret') else Mule::p('secure::sys.auth.clientSecret')]" />
+        </http:default-headers>
     </http:request-config>
 
     <http:request-config name="sys_observability_http_config" basePath="${sys.observability.basePath}" responseTimeout="${sys.observability.responseTimeoutMillis}">
         <http:request-connection protocol="${sys.observability.protocol}" host="${sys.observability.host}" port="${sys.observability.port}" />
+        <http:default-headers>
+            <http:default-header key="#[(Mule::p('sys.auth.clientIdHeader') default 'client_id')]" value="#[Mule::p('sys.auth.clientId')]" />
+            <http:default-header key="#[(Mule::p('sys.auth.clientSecretHeader') default 'client_secret')]" value="#[if ((Mule::p('mule.env') default 'local') == 'local') Mule::p('sys.auth.clientSecret') else Mule::p('secure::sys.auth.clientSecret')]" />
+        </http:default-headers>
     </http:request-config>
 
-    <http:request-config name="control_plane_http_config" basePath="${control.plane.basePath}" responseTimeout="${control.plane.responseTimeoutMillis}">
-        <http:request-connection protocol="${control.plane.protocol}" host="${control.plane.host}" port="${control.plane.port}" />
+    <http:request-config name="control_plane_http_config" basePath="${sys.controlPlane.basePath}" responseTimeout="${sys.controlPlane.responseTimeoutMillis}">
+        <http:request-connection protocol="${sys.controlPlane.protocol}" host="${sys.controlPlane.host}" port="${sys.controlPlane.port}" />
+        <http:default-headers>
+            <http:default-header key="#[(Mule::p('sys.auth.clientIdHeader') default 'client_id')]" value="#[Mule::p('sys.auth.clientId')]" />
+            <http:default-header key="#[(Mule::p('sys.auth.clientSecretHeader') default 'client_secret')]" value="#[if ((Mule::p('mule.env') default 'local') == 'local') Mule::p('sys.auth.clientSecret') else Mule::p('secure::sys.auth.clientSecret')]" />
+        </http:default-headers>
     </http:request-config>
 
     <api-gateway:autodiscovery apiId="${api.id}" flowRef="api-main" ignoreBasePath="true" />

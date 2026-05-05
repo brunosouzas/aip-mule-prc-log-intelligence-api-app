@@ -17,7 +17,7 @@
             <set-variable variableName="errorCategory" value="validation"/>
             <flow-ref name="build-canonical-error-sf"/>
         </on-error-propagate>
-        <on-error-propagate type="APP:DEPENDENCY_ERROR, HTTP:CONNECTIVITY, HTTP:TIMEOUT">
+        <on-error-propagate type="APP:DEPENDENCY_ERROR, HTTP:*">
             <set-variable variableName="httpStatus" value="503"/>
             <set-variable variableName="errorCategory" value="dependency"/>
             <flow-ref name="build-canonical-error-sf"/>

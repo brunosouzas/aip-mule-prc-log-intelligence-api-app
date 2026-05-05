@@ -1,6 +1,13 @@
+# Shared non-secret defaults. Environment-specific hosts and API Manager IDs live in
+# config-<env>.yaml; secrets in secure-config-<env>.yaml.
+
 http:
+  host: "0.0.0.0"
   private:
     port: "8081"
+  timeout:
+    connectionIdle: "40000"
+    read: "30000"
 
 process:
   logs:
@@ -25,9 +32,12 @@ sys:
     basePath: "/api/v1"
     logsPath: "/logs"
     responseTimeoutMillis: "10000"
-
-control:
-  plane:
+  controlPlane:
+    protocol: "HTTPS"
+    port: "443"
+    # Overridden per environment with the deployed SYS control-plane hostname (see config-<env>.yaml).
+    host: "127.0.0.1"
     basePath: "/api/v1"
+    submitPath: "/analysis-jobs"
     mockMode: "true"
     responseTimeoutMillis: "10000"

@@ -13,10 +13,11 @@ sys:
     protocol: "HTTPS"
     host: "replace-prod-observability-host"
     port: "443"
-
-control:
-  plane:
-    mockMode: "true"
+  controlPlane:
+    protocol: "HTTPS"
+    host: "replace-prod-aip-mule-sys-control-plane-host"
+    port: "443"
+    mockMode: "false"
 
 # Autodiscovery configuration
 api.id: "0"

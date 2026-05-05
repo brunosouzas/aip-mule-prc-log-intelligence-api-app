@@ -6,7 +6,7 @@ This application deploys as a Mule Process API and requires connectivity to:
 
 - `aip-mule-sys-anypoint-logs-api` (System API),
 - `aip-mule-sys-observability-logs-api` (System API),
-- `aip-control-plane-go` (analysis orchestration target).
+- **`aip-mule-sys-control-plane-api-app`** (System API analysis job persistence) when **`sys.controlPlane.mockMode`** is **`false`**; set **`sys.controlPlane.submitPath`** to **`/analysis-jobs`**, **`sys.controlPlane.host`** to the SYS app hostname, **`sys.controlPlane.protocol`**, **`sys.controlPlane.port`**, **`sys.controlPlane.basePath`** (typically **`/api/v1`**), and outbound **`sys.auth.*`** credentials the SYS API expects.
 
 ## Required Runtime Properties
 
@@ -15,14 +15,14 @@ Key properties defined under `src/main/resources/properties/`:
 - listener and API metadata (`http.private.port`, `api.name`, `api.spec`),
 - source collection controls (`process.logs.defaultLimit`, `process.logs.maxLimit`),
 - retry controls (`process.source.*`, `process.dispatch.*`),
-- downstream endpoints (`sys.anypoint.*`, `sys.observability.*`, `control.plane.*`).
+- downstream endpoints (`sys.anypoint.*`, `sys.observability.*`, `sys.controlPlane.*`).
 
 ## Environment Configuration Notes
 
 - `config.yaml` defines the shared baseline.
 - `config-local.yaml` enables local development overrides.
 - The runtime selects the environment file via `mule.env` (for example `test`, `uat`, `prod`). If not set, it defaults to `local`.
-- Production-like environments should override endpoint hosts and disable mock mode where live control-plane dispatch is enabled.
+- Production-like environments should override endpoint hosts and set **`sys.controlPlane.mockMode: "false"`** where live SYS control-plane HTTP dispatch is enabled; the outbound JSON uses **camelCase** matching the SYS RAML (**`sourceType`**, **`requestedBy`**, optional **`priority`**, **`logObjectUri`**).
 
 ## Operational Checklist
 

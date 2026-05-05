@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/documentation http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd
         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
     <sub-flow name="prc-validate-analysis-request-sf">
@@ -100,7 +101,9 @@ var filter = vars.analysisRequest.filter default {}
   severity: if (isEmpty(filter.severity default [])) null else ((filter.severity default []) joinBy ","),
   containsText: filter.containsText default null,
   correlationId: filter.correlationId default null,
-  sourceHealthRequired: true
+  sourceHealthRequired: true,
+  limit: filter.limit default Mule::p('process.logs.defaultLimit'),
+  offset: filter.offset default null
 } filterObject ((value, key) -> value != null)]]>
                 </ee:set-variable>
             </ee:variables>
@@ -108,12 +111,6 @@ var filter = vars.analysisRequest.filter default {}
         <http:request method="GET" config-ref="sys_anypoint_http_config" path="${sys.anypoint.logsPath}" sendCorrelationId="ALWAYS">
             <http:headers>
                 <![CDATA[#[{
-  (Mule::p('sys.auth.clientIdHeader') default 'client_id'): Mule::p('sys.auth.clientId'),
-  (Mule::p('sys.auth.clientSecretHeader') default 'client_secret'):
-    if ((Mule::p('mule.env') default 'local') == 'local')
-      Mule::p('sys.auth.clientSecret')
-    else
-      Mule::p('secure::sys.auth.clientSecret'),
   'x-correlation-id': correlationId
 }]]]>
             </http:headers>
@@ -141,7 +138,9 @@ var filter = vars.analysisRequest.filter default {}
   severity: if (isEmpty(filter.severity default [])) null else ((filter.severity default []) joinBy ","),
   containsText: filter.containsText default null,
   correlationId: filter.correlationId default null,
-  sourceHealthRequired: true
+  sourceHealthRequired: true,
+  limit: filter.limit default Mule::p('process.logs.defaultLimit'),
+  offset: filter.offset default null
 } filterObject ((value, key) -> value != null)]]>
                 </ee:set-variable>
             </ee:variables>
@@ -149,12 +148,6 @@ var filter = vars.analysisRequest.filter default {}
         <http:request method="GET" config-ref="sys_observability_http_config" path="${sys.observability.logsPath}" sendCorrelationId="ALWAYS">
             <http:headers>
                 <![CDATA[#[{
-  (Mule::p('sys.auth.clientIdHeader') default 'client_id'): Mule::p('sys.auth.clientId'),
-  (Mule::p('sys.auth.clientSecretHeader') default 'client_secret'):
-    if ((Mule::p('mule.env') default 'local') == 'local')
-      Mule::p('sys.auth.clientSecret')
-    else
-      Mule::p('secure::sys.auth.clientSecret'),
   'x-correlation-id': correlationId
 }]]]>
             </http:headers>
@@ -234,42 +227,65 @@ output text/plain
     </sub-flow>
 
     <sub-flow name="prc-build-control-plane-request-sf">
-        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=buildControlPlaneEvent jobId=' ++ ((vars.jobId default 'null') as String)]" />
-        <ee:transform>
+        <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=buildSysControlPlaneSubmitBody localDraftJobId=' ++ ((vars.jobId default 'null') as String)]" />
+        <!-- HTTP body aligns with System API SubmitJobRequest (camelCase RAML governance). Canonical log entries remain in-process until MQ dispatch is wired. -->
+        <ee:transform doc:name="Build SubmitJobRequest for SYS API">
             <ee:message>
                 <ee:set-payload>
                     <![CDATA[%dw 2.0
 output application/json
+var ar = vars.analysisRequest default {}
 ---
 {
-  event_id: uuid(),
-  event_name: "analysis.debug.requested.v1",
-  event_version: "v1",
-  occurred_at: now() as String,
-  correlation_id: correlationId,
-  producer: Mule::p("api.name"),
-  payload: {
-    job_id: vars.jobId,
-    source_type: "orchestrated",
-    idempotency_key: vars.idempotencyKey,
-    requested_by: vars.analysisRequest.requestedBy default "unknown",
-    priority: vars.analysisRequest.priority default "normal",
-    log_entries: vars.canonicalLogs default []
-  }
-}]]>
+  sourceType: "orchestrated",
+  requestedBy: (ar.requestedBy default "unknown") as String,
+  priority: lower(trim((ar.priority default "normal") as String))
+}
+++
+(if ((ar.logObjectUri default null) != null and !isEmpty(trim(ar.logObjectUri as String)))
+  { logObjectUri: ar.logObjectUri as String }
+else {})
+]]>
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
     </sub-flow>
 
     <sub-flow name="prc-send-control-plane-request-sf">
-        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=sendControlPlane mockMode=' ++ (((Mule::p('control.plane.mockMode') default true) as Boolean) as String)]" />
+        <logger level="INFO" category="adapter.query" message="#['correlationId=' ++ (correlationId as String) ++ ' step=sendControlPlane mockMode=' ++ (((Mule::p('sys.controlPlane.mockMode') default true) as Boolean) as String)]" />
         <choice>
-            <when expression="#[(Mule::p('control.plane.mockMode') default true) as Boolean]">
+            <when expression="#[(Mule::p('sys.controlPlane.mockMode') default true) as Boolean]">
                 <set-variable variableName="controlPlaneAccepted" value="#[true]" />
             </when>
             <otherwise>
-                <raise-error type="APP:DEPENDENCY_ERROR" description="Control-plane live dispatch not configured for this environment" />
+                <try doc:name="POST System control-plane">
+                    <http:request method="POST"
+                                  config-ref="control_plane_http_config"
+                                  path="${sys.controlPlane.submitPath}"
+                                  sendCorrelationId="ALWAYS">
+                        <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+  "content-type": "application/json",
+  "x-correlation-id": correlationId default ""
+}]]]></http:headers>
+                    </http:request>
+                    <choice doc:name="Normalise SYS 202 acceptance">
+                        <when expression="#[!isEmpty(trim((payload.jobId default payload.job_id default '') as String))]">
+                            <set-variable variableName="jobId" value="#[trim((payload.jobId default payload.job_id default '') as String)]"/>
+                        </when>
+                        <otherwise>
+                            <raise-error type="APP:DEPENDENCY_ERROR" description="Control-plane returned acceptance without jobId"/>
+                        </otherwise>
+                    </choice>
+                    <error-handler>
+                        <on-error-propagate type="ANY">
+                            <raise-error type="APP:DEPENDENCY_ERROR"
+                                         description='#["SYS control-plane call failed: " ++ ((error.description default "") as String)]'/>
+                        </on-error-propagate>
+                    </error-handler>
+                </try>
             </otherwise>
         </choice>
     </sub-flow>
