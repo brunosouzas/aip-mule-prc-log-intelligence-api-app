@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-        http://www.mulesoft.org/schema/mule/documentation http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd
         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
     <sub-flow name="prc-validate-analysis-request-sf">
@@ -229,7 +228,7 @@ output text/plain
     <sub-flow name="prc-build-control-plane-request-sf">
         <logger level="INFO" category="orchestration.dispatch" message="#['correlationId=' ++ (correlationId as String) ++ ' step=buildSysControlPlaneSubmitBody localDraftJobId=' ++ ((vars.jobId default 'null') as String)]" />
         <!-- HTTP body aligns with System API SubmitJobRequest (camelCase RAML governance). Canonical log entries remain in-process until MQ dispatch is wired. -->
-        <ee:transform doc:name="Build SubmitJobRequest for SYS API">
+        <ee:transform>
             <ee:message>
                 <ee:set-payload>
                     <![CDATA[%dw 2.0
@@ -258,7 +257,7 @@ else {})
                 <set-variable variableName="controlPlaneAccepted" value="#[true]" />
             </when>
             <otherwise>
-                <try doc:name="POST System control-plane">
+                <try>
                     <http:request method="POST"
                                   config-ref="control_plane_http_config"
                                   path="${sys.controlPlane.submitPath}"
@@ -271,7 +270,7 @@ output application/java
   "x-correlation-id": correlationId default ""
 }]]]></http:headers>
                     </http:request>
-                    <choice doc:name="Normalise SYS 202 acceptance">
+                    <choice>
                         <when expression="#[!isEmpty(trim((payload.jobId default payload.job_id default '') as String))]">
                             <set-variable variableName="jobId" value="#[trim((payload.jobId default payload.job_id default '') as String)]"/>
                         </when>
